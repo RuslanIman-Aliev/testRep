@@ -14,18 +14,28 @@ import 'repository/github_repository.dart';
 import 'viewmodels/github_view_model.dart';
 import 'views/github_view.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async{
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // 2. Створюємо репозиторій
+  final personRepo = PersonRepository();
+
+  // 3. ЧЕКАЄМО поки дані завантажаться (це вирішує вашу проблему!)
+  await personRepo.loadData();
+
+  // 4. Запускаємо додаток, передаючи вже готовий репозиторій
+  runApp(MyApp(repository: personRepo));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final PersonRepository repository;
+  const MyApp({super.key, required this.repository});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => PersonRepository()),
+       ChangeNotifierProvider.value(value: repository),
         Provider(create: (_) => GithubService(client: http.Client())),
         ChangeNotifierProvider(
             create: (context) =>

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../repository/person_repository.dart';
 import '../models/person.dart';
+import 'add_view.dart';
 
 class ListViewPage extends StatelessWidget {
   const ListViewPage({super.key});
@@ -29,12 +30,16 @@ class ListViewPage extends StatelessWidget {
                 IconButton(
                   tooltip: 'Дублювати',
                   icon: const Icon(Icons.copy),
-                  onPressed: () {
-                    final newPerson = repo.duplicate(p.id);
-                    context.go('/profile/${newPerson.id}');
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Резюме дубльовано')),
-                    );
+                  onPressed: () async{
+                    final newPerson = await repo.duplicate(p.id);
+                    
+                    // Перевіряємо, чи екран ще активний перед навігацією
+                    if (context.mounted) {
+                      context.go('/profile/${newPerson.id}');
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Резюме дубльовано')),
+                      );
+                    }
                   },
                 ),
                 IconButton(
@@ -50,20 +55,15 @@ class ListViewPage extends StatelessWidget {
           );
         },
       ),
+      
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final newId = DateTime.now().millisecondsSinceEpoch.toString();
-          final newPerson = Person(
-            id: newId,
-            name: '',
-            position: '',
-            about: '',
-          );
-          repo.add(newPerson);
-          
-          context.go('/profile//${newPerson.id}');
-        },
         child: const Icon(Icons.add),
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const AddView()),
+          );
+        },
       ),
     );
   }

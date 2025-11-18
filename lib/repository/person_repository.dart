@@ -1,30 +1,67 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import '../models/person.dart';
+import '../services/person_storage_service.dart';
 
 class PersonRepository with ChangeNotifier {
-  final List<Person> _items = [
-    Person(
-      id: '1',
-      name: 'Іван Іванов',
-      position: 'Junior  Developer',
-      about: 'Прагну вчитись.',
-    ),
-    Person(
-      id: '2',
-      name: 'Марія Нестеренко',
-      position: 'UI/UX Designer',
-      about: 'Дизайн інтерфейсів',
-    ),
-    Person(
-      id: '3',
-      name: 'Іван Коваль',
-      position: 'Frontend Developer',
-      about: 'React, TypeScript та бажання вчити Flutter.',
-    ),
-  ];
+  final PersonStorageService _storage = PersonStorageService();
+  List<Person> _items = [];
 
-  List<Person> getAll() => _items.map((p) => p).toList();
+  // КОНСТРУКТОР ТЕПЕР ПУСТИЙ! Ми не запускаємо логіку тут.
+  PersonRepository();
 
+  List<Person> getAll() => _items;
+
+  // ЦЕЙ МЕТОД МИ ВИКЛИЧЕМО В MAIN.DART
+  Future<void> loadData() async {
+    print("🔄 СТАРТ ЗАВАНТАЖЕННЯ...");
+    try {
+      final savedData = await _storage.loadPersons();
+      
+      if (savedData.isNotEmpty) {
+        _items = savedData;
+        print("✅ ЗАВАНТАЖЕНО ${savedData.length} ЗАПИСІВ З ПАМ'ЯТІ");
+      } else {
+        print("⚠️ ПАМ'ЯТЬ ПУСТА. СТВОРЮЮ ТЕСТОВІ ДАНІ.");
+        _items = [
+          Person(id: '1', name: 'Тестовий Іван', position: 'Dev', about: 'Data test'),
+        ];
+        // Відразу зберігаємо, щоб файл фізично створився
+        await _storage.savePersons(_items);
+      }
+    } catch (e) {
+      print("❌ ПОМИЛКА ЗАВАНТАЖЕННЯ: $e");
+    }
+    notifyListeners();
+  }
+
+  // --- Всі методи зміни даних ОБОВ'ЯЗКОВО зі збереженням ---
+
+  Future<void> add(Person person) async {
+    _items.add(person);
+    notifyListeners(); 
+    await _storage.savePersons(_items);
+    print("💾 ДОДАНО ТА ЗБЕРЕЖЕНО: ${person.name}");
+  }
+
+  Future<Person> duplicate(String id) async {
+    final existing = _items.firstWhere((p) => p.id == id);
+    final newPerson = existing.copyWith(
+      // генеруємо новий ID
+    ); // (тут ваш код дублювання, головне new ID)
+    
+    // Якщо у вас в моделі немає методу для зміни ID через copyWith, створіть новий об'єкт вручну:
+    final realNewPerson = Person(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: existing.name, 
+        position: existing.position, 
+        about: existing.about
+    );
+
+    _items.add(realNewPerson);
+    notifyListeners();
+    await _storage.savePersons(_items);
+    return realNewPerson;
+  }
   Person? getById(String id) {
     try {
       return _items.firstWhere((p) => p.id == id);
@@ -32,40 +69,16 @@ class PersonRepository with ChangeNotifier {
       return null;
     }
   }
-
-  void update(String id, {String? name, String? position, String? about}) {
-    final idx = _items.indexWhere((p) => p.id == id);
-    if (idx == -1) return;
-    final p = _items[idx];
-    _items[idx] = p.copyWith(
-      name: name ?? p.name,
-      position: position ?? p.position,
-      about: about ?? p.about,
-    );
-    notifyListeners();
-  }
-
-  void add(Person person) {
-    _items.add(person);
-    notifyListeners();
-  }
-
-  Person duplicate(String id) {
-    final existing = getById(id);
-    if (existing == null) {
-      throw Exception('Person with id $id not found');
+  // Оновлення (Update)
+  Future<void> update(String id, {String? name, String? position, String? about}) async {
+    final index = _items.indexWhere((p) => p.id == id);
+    if (index != -1) {
+        _items[index] = _items[index].copyWith(
+            name: name, position: position, about: about
+        );
+        notifyListeners();
+        await _storage.savePersons(_items);
+        print("💾 ОНОВЛЕНО ТА ЗБЕРЕЖЕНО ID: $id");
     }
-
-    final newId = DateTime.now().millisecondsSinceEpoch.toString();
-    final newPerson = Person(
-      id: newId,
-      name: existing.name,
-      position: existing.position,
-      about: existing.about,
-    );
-
-    _items.add(newPerson);
-    notifyListeners();
-    return newPerson;
   }
 }

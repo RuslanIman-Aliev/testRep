@@ -3,65 +3,36 @@ import '../models/person.dart';
 import '../services/person_storage_service.dart';
 
 class PersonRepository with ChangeNotifier {
+  // Підключаємо наш новий сервіс
   final PersonStorageService _storage = PersonStorageService();
+  
   List<Person> _items = [];
 
-  // КОНСТРУКТОР ТЕПЕР ПУСТИЙ! Ми не запускаємо логіку тут.
-  PersonRepository();
+  // КОНСТРУКТОР
+  PersonRepository() {
+    _loadData();
+  }
+
+  // Завантаження даних (без async!)
+  void _loadData() {
+    final savedData = _storage.loadPersons();
+
+    if (savedData.isNotEmpty) {
+      _items = savedData;
+    } else {
+      // Якщо це перший запуск - створюємо тестового
+      _items = [
+        Person(id: '1', name: 'Тестовий GetStorage', position: 'Web', about: 'Працює швидко!')
+      ];
+      // І відразу зберігаємо
+      _storage.savePersons(_items);
+    }
+  }
+
+  // --- МЕТОДИ УПРАВЛІННЯ ---
 
   List<Person> getAll() => _items;
 
-  // ЦЕЙ МЕТОД МИ ВИКЛИЧЕМО В MAIN.DART
-  Future<void> loadData() async {
-    print("🔄 СТАРТ ЗАВАНТАЖЕННЯ...");
-    try {
-      final savedData = await _storage.loadPersons();
-      
-      if (savedData.isNotEmpty) {
-        _items = savedData;
-        print("✅ ЗАВАНТАЖЕНО ${savedData.length} ЗАПИСІВ З ПАМ'ЯТІ");
-      } else {
-        print("⚠️ ПАМ'ЯТЬ ПУСТА. СТВОРЮЮ ТЕСТОВІ ДАНІ.");
-        _items = [
-          Person(id: '1', name: 'Тестовий Іван', position: 'Dev', about: 'Data test'),
-        ];
-        // Відразу зберігаємо, щоб файл фізично створився
-        await _storage.savePersons(_items);
-      }
-    } catch (e) {
-      print("❌ ПОМИЛКА ЗАВАНТАЖЕННЯ: $e");
-    }
-    notifyListeners();
-  }
-
-  // --- Всі методи зміни даних ОБОВ'ЯЗКОВО зі збереженням ---
-
-  Future<void> add(Person person) async {
-    _items.add(person);
-    notifyListeners(); 
-    await _storage.savePersons(_items);
-    print("💾 ДОДАНО ТА ЗБЕРЕЖЕНО: ${person.name}");
-  }
-
-  Future<Person> duplicate(String id) async {
-    final existing = _items.firstWhere((p) => p.id == id);
-    final newPerson = existing.copyWith(
-      // генеруємо новий ID
-    ); // (тут ваш код дублювання, головне new ID)
-    
-    // Якщо у вас в моделі немає методу для зміни ID через copyWith, створіть новий об'єкт вручну:
-    final realNewPerson = Person(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        name: existing.name, 
-        position: existing.position, 
-        about: existing.about
-    );
-
-    _items.add(realNewPerson);
-    notifyListeners();
-    await _storage.savePersons(_items);
-    return realNewPerson;
-  }
   Person? getById(String id) {
     try {
       return _items.firstWhere((p) => p.id == id);
@@ -69,16 +40,41 @@ class PersonRepository with ChangeNotifier {
       return null;
     }
   }
-  // Оновлення (Update)
-  Future<void> update(String id, {String? name, String? position, String? about}) async {
+
+  // Додавання
+  void add(Person person) {
+    _items.add(person);
+    _storage.savePersons(_items); // Миттєве збереження
+    notifyListeners();
+  }
+
+  // Оновлення
+  void update(String id, {String? name, String? position, String? about}) {
     final index = _items.indexWhere((p) => p.id == id);
     if (index != -1) {
-        _items[index] = _items[index].copyWith(
-            name: name, position: position, about: about
-        );
-        notifyListeners();
-        await _storage.savePersons(_items);
-        print("💾 ОНОВЛЕНО ТА ЗБЕРЕЖЕНО ID: $id");
+      _items[index] = _items[index].copyWith(
+        name: name, position: position, about: about
+      );
+      _storage.savePersons(_items); // Миттєве збереження
+      notifyListeners();
     }
+  }
+
+  // Дублювання
+  Person duplicate(String id) {
+    final existing = getById(id);
+    if (existing == null) throw Exception('Not found');
+
+    final newPerson = Person(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      name: existing.name,
+      position: existing.position,
+      about: existing.about,
+    );
+
+    _items.add(newPerson);
+    _storage.savePersons(_items); // Миттєве збереження
+    notifyListeners();
+    return newPerson; // Повертаємо об'єкт відразу, без Future
   }
 }

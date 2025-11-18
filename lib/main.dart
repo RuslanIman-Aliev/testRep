@@ -8,7 +8,7 @@ import 'views/list_view.dart';
 import 'views/profile_view.dart';
 import 'views/edit_view.dart';
 import 'viewmodels/profile_view_model.dart';
-
+import 'package:get_storage/get_storage.dart';  
 import 'services/github_service.dart';
 import 'repository/github_repository.dart';
 import 'viewmodels/github_view_model.dart';
@@ -16,15 +16,14 @@ import 'views/github_view.dart';
 
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 1. Инициализируем хранилище (это очень быстро)
+  await GetStorage.init();
 
-  // 2. Створюємо репозиторій
-  final personRepo = PersonRepository();
+  // 2. Создаем репозиторий (он сам загрузит данные внутри себя)
+  final repo = PersonRepository();
 
-  // 3. ЧЕКАЄМО поки дані завантажаться (це вирішує вашу проблему!)
-  await personRepo.loadData();
-
-  // 4. Запускаємо додаток, передаючи вже готовий репозиторій
-  runApp(MyApp(repository: personRepo));
+  runApp(MyApp(repository: repo));
 }
 
 class MyApp extends StatelessWidget {

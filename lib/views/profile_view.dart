@@ -28,15 +28,34 @@ class _ProfileViewPageState extends State<ProfileViewPage> {
   @override
   Widget build(BuildContext context) {
     final person = widget.vm.person;
+    
     if (person == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Профіль')),
+        appBar: AppBar(
+          title: const Text('Профіль'),
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back),
+            onPressed: () => context.go('/'), 
+          ),
+        ),
         body: const Center(child: Text('Профіль не знайдено')),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Назад',
+          onPressed: () {
+            if (context.canPop()) {
+              context.pop();
+            } else {
+              context.go('/');
+            }
+          },
+        ),
+
         title: Text(person.name),
         actions: [
           IconButton(

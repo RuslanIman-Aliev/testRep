@@ -5,6 +5,7 @@ import '../repository/person_repository.dart';
 import '../models/person.dart';
 import '../services/theme_service.dart';
 import 'add_view.dart';
+import '../widgets/banner_ad_widget.dart';
 
 class ListViewPage extends StatelessWidget {
   const ListViewPage({super.key});
@@ -65,7 +66,9 @@ class ListViewPage extends StatelessWidget {
           );
         },
       ),
-      
+      bottomNavigationBar: const SafeArea(
+        child: BannerAdWidget(),
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add),
         onPressed: () {

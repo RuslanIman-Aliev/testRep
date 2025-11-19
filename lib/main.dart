@@ -13,16 +13,11 @@ import 'services/github_service.dart';
 import 'repository/github_repository.dart';
 import 'viewmodels/github_view_model.dart';
 import 'views/github_view.dart';
-
+import 'services/theme_service.dart';
 void main() async{
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // 1. Инициализируем хранилище (это очень быстро)
   await GetStorage.init();
-
-  // 2. Создаем репозиторий (он сам загрузит данные внутри себя)
   final repo = PersonRepository();
-
   runApp(MyApp(repository: repo));
 }
 
@@ -32,10 +27,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+
     return MultiProvider(
       providers: [
-       ChangeNotifierProvider.value(value: repository),
+        ChangeNotifierProvider.value(value: repository),
         Provider(create: (_) => GithubService(client: http.Client())),
+        ChangeNotifierProvider(create: (_) => ThemeService()),
         ChangeNotifierProvider(
             create: (context) =>
                 GithubRepository(service: context.read<GithubService>())),
@@ -43,46 +40,47 @@ class MyApp extends StatelessWidget {
             create: (context) =>
                 GithubViewModel(repository: context.read<GithubRepository>())),
       ],
-      child: Builder(builder: (context) {
-        final router = GoRouter(
-          initialLocation: '/',
-          routes: [
-            GoRoute(
-              path: '/',
-              builder: (context, state) => const ListViewPage(),
-            ),
-            GoRoute(
-              path: '/profile/:id',
-              builder: (context, state) {
-                final id = state.pathParameters['id']!;
-                final repo =
-                    Provider.of<PersonRepository>(context, listen: false);
-                final vm = ProfileViewModel(repository: repo, id: id);
-                return ProfileViewPage(vm: vm);
-              },
-            ),
-            GoRoute(
-              path: '/profile/:id/edit',
-              builder: (context, state) {
-                final id = state.pathParameters['id']!;
-                final repo =
-                    Provider.of<PersonRepository>(context, listen: false);
-                final vm = ProfileViewModel(repository: repo, id: id);
-                return EditViewPage(vm: vm);
-              },
-            ),
-            GoRoute(
-              path: '/github',
-              builder: (context, state) => const GithubViewPage(),
-            ),
-          ],
-        );
+      child: Consumer<ThemeService>(
+        builder: (context, themeService, child) {
+          final router = GoRouter(
+            initialLocation: '/',
+            routes: [
+              GoRoute(
+                path: '/',
+                builder: (context, state) => const ListViewPage(),
+              ),
+              GoRoute(
+                path: '/profile/:id',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final repo = Provider.of<PersonRepository>(context, listen: false);
+                  final vm = ProfileViewModel(repository: repo, id: id);
+                  return ProfileViewPage(vm: vm);
+                },
+              ),
+              GoRoute(
+                path: '/profile/:id/edit',
+                builder: (context, state) {
+                  final id = state.pathParameters['id']!;
+                  final repo = Provider.of<PersonRepository>(context, listen: false);
+                  final vm = ProfileViewModel(repository: repo, id: id);
+                  return EditViewPage(vm: vm);
+                },
+              ),
+              GoRoute(
+                path: '/github',
+                builder: (context, state) => const GithubViewPage(),
+              ),
+            ],
+          );
 
-        return MaterialApp.router(
-          title: 'Resume Builder',
-          theme: ThemeData(primarySwatch: Colors.blue),
-          routerConfig: router,
-        );
+          return MaterialApp.router(
+            title: 'Resume Builder',
+            themeMode: themeService.isDark ? ThemeMode.dark : ThemeMode.light,
+            theme: ThemeData.light(useMaterial3: true),
+            darkTheme: ThemeData.dark(useMaterial3: true),
+            routerConfig: router,
+          );
       }),
     );
   }

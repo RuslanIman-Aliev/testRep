@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import '../repository/person_repository.dart';
 import '../models/person.dart';
+import '../services/theme_service.dart';
 import 'add_view.dart';
 
 class ListViewPage extends StatelessWidget {
@@ -12,9 +13,19 @@ class ListViewPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final repo = Provider.of<PersonRepository>(context);
     final items = repo.getAll();
-
+    final themeService = Provider.of<ThemeService>(context);
     return Scaffold(
-      appBar: AppBar(title: const Text('Список резюме')),
+      appBar: AppBar(title: const Text('Список резюме'),
+      actions: [
+          IconButton(
+            icon: Icon(themeService.isDark ? Icons.light_mode : Icons.dark_mode),
+            tooltip: 'Змінити тему',
+            onPressed: () {
+              themeService.toggleTheme();
+            },
+          ),
+        ],),
+     
       body: ListView.separated(
         padding: const EdgeInsets.all(12),
         itemCount: items.length,
@@ -33,7 +44,6 @@ class ListViewPage extends StatelessWidget {
                   onPressed: () async{
                     final newPerson = await repo.duplicate(p.id);
                     
-                    // Перевіряємо, чи екран ще активний перед навігацією
                     if (context.mounted) {
                       context.go('/profile/${newPerson.id}');
                       ScaffoldMessenger.of(context).showSnackBar(
